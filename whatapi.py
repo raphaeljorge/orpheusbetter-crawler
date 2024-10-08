@@ -53,7 +53,7 @@ formats = {
 
 def allowed_transcodes(torrent):
     """Some torrent types have transcoding restrictions."""
-    preemphasis = re.search(r"""pre[- ]?emphasi(s(ed)?|zed)""", torrent['remasterTitle'], flags=re.IGNORECASE)
+    preemphasis = re.search(r"""pre[- ]?emphasi(s(ed)?|zed)""", torrent['remasterTitle'] or "", flags=re.IGNORECASE)
     if preemphasis:
         return []
     else:
@@ -81,23 +81,23 @@ class WhatAPI:
         self.passkey = None
         self.userid = None
         self.last_request = time.time()
-        self.rate_limit = 2.0 # seconds between requests
+        self.rate_limit = 10.0 # seconds between requests
         self._login()
 
     def _login(self):
         '''Logs in user and gets authkey from server'''
         loginpage = '{0}/login.php'.format(self.endpoint)
-        data = {'username': self.username,
-                'password': self.password}
-        r = self.session.post(loginpage, data=data)
+        params = {'act': 'twofa'}
+        data = {
+            'username': self.username,
+            'password': self.password,
+            'twofa': 0
+        }
+        if self.totp:
+            data['twofa'] = self.totp
+        r = self.session.post(loginpage, params=params, data=data)
         if r.status_code != 200:
             raise LoginException
-        if self.totp:
-            params = {'act': '2fa'}
-            data = {'2fa': self.totp}
-            r = self.session.post(loginpage, params=params, data=data)
-            if r.status_code != 200:
-                raise LoginException
         accountinfo = self.request('index')
         self.authkey = accountinfo['authkey']
         self.passkey = accountinfo['passkey']
@@ -184,7 +184,7 @@ class WhatAPI:
         else:
             media_params = ['&media={0}'.format(media_search_map[m]) for m in media]
 
-        pattern = re.compile(r'reportsv2\.php\?action=report&amp;id=(\d+)".*?torrents\.php\?id=(\d+)"', re.MULTILINE | re.IGNORECASE | re.DOTALL)
+        pattern = re.compile(r'reportsv2\.php\?action=report&amp;id=(\d+)".*?torrents\.php\?id=(\d+).*?"', re.MULTILINE | re.IGNORECASE | re.DOTALL)
         if mode == 'snatched' or mode == 'both' or mode == 'all':
             url = '{0}/torrents.php?type=snatched&userid={1}&format=FLAC'.format(self.endpoint, self.userid)
             for mp in media_params:
@@ -195,7 +195,7 @@ class WhatAPI:
                     for torrentid, groupid in pattern.findall(content):
                         if skip is None or torrentid not in skip:
                             yield int(groupid), int(torrentid)
-                    done = 'Next &gt;' not in content
+                    done = 'Next &rsaquo;' not in content
                     page += 1
 
         if mode == 'uploaded' or mode == 'both' or mode == 'all':
@@ -208,12 +208,13 @@ class WhatAPI:
                     for torrentid, groupid in pattern.findall(content):
                         if skip is None or torrentid not in skip:
                             yield int(groupid), int(torrentid)
-                    done = 'Next &gt;' not in content
+                    done = 'Next &rsaquo;' not in content
                     page += 1
 
         if mode == 'seeding' or mode == 'all':
             url = '{0}/better.php?method=transcode&filter=seeding'.format(self.endpoint)
-            pattern = re.compile('torrents.php\?groupId=(\d+)&torrentid=(\d+)#\d+')
+            #pattern = re.compile('torrents.php\?groupId=(\d+)&torrentid=(\d+)(#\d+).*?')
+            pattern = re.compile('torrents\.php\?id=(\d+)&amp;torrentid=(\d+)#\w+\d+')
             content = self.get_html(url)
             for groupid, torrentid in pattern.findall(content):
                 if skip is None or torrentid not in skip:
