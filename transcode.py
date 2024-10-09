@@ -374,6 +374,8 @@ def get_transcode_dir(flac_dir, output_dir, output_format, resample):
     if re.search(r'\b2016\b', transcode_dir) and re.search(r'\b2024\b', flac_dir):
         transcode_dir = re.sub(r'\b2016\b', '2024', transcode_dir)
 
+    transcode_dir = extract_first_value(transcode_dir)
+
     #transcode_dir = input(f"Transcode directory? [ {transcode_dir} ] : ").strip() or transcode_dir
     return os.path.join(output_dir, transcode_dir)
 
@@ -479,13 +481,71 @@ def make_torrent(input_dir, output_dir, tracker, passkey, source):
 
 def main():
     import argparse
+
     parser = argparse.ArgumentParser()
-    parser.add_argument('input_dir')
-    parser.add_argument('output_dir')
-    parser.add_argument('output_format', choices=encoders.keys())
-    parser.add_argument('-j', '--threads', default=multiprocessing.cpu_count(), type=int)
+    parser.add_argument("input_dir")
+    parser.add_argument("output_dir")
+    parser.add_argument("output_format", choices=encoders.keys())
+    parser.add_argument(
+        "-j", "--threads", default=multiprocessing.cpu_count(), type=int
+    )
     args = parser.parse_args()
 
-    transcode_release(os.path.expanduser(args.input_dir), os.path.expanduser(args.output_dir), args.output_format, args.threads)
+    upload_torrent = not args.no_upload
 
-if __name__ == "__main__": main()
+    print("Logging in to Orpheus Network...")
+    api = whatapi.WhatAPI(username, password, endpoint, args.totp)
+
+    try:
+        with open(args.cache, "r") as cache_file:
+            seen = set(json.load(cache_file))
+    except (FileNotFoundError, json.JSONDecodeError):
+        seen = set()
+        with open(args.cache, "w") as cache_file:
+            json.dump(list(seen), cache_file)
+
+    if args.skip:
+        skip = [
+            int(query["torrentid"])
+            for query in [
+                dict(parse_qsl(urlparse(url).query)) for url in args.release_urls
+            ]
+        ]
+        for id in skip:
+            print("Skipping torrent {0}".format(str(id)))
+            seen.add(str(id))
+        with open(args.cache, "w") as cache_file:
+            json.dump(list(seen), cache_file)
+        return
+
+    print("Searching for transcode candidates...")
+    if args.release_urls:
+        if len(args.release_urls) == 1 and os.path.isfile(args.release_urls[0]):
+            print("You supplied a url list, ignoring your configuration's media types.")
+            with open(args.release_urls[0]) as f:
+                candidates = [
+                    (int(query["id"]), int(query["torrentid"]))
+                    for query in [dict(parse_qsl(urlparse(url).query)) for url in f]
+                ]
+        else:
+            print(
+                "You supplied one or more release URLs, ignoring your configuration's media types."
+            )
+            candidates = [
+                (int(query["id"]), int(query["torrentid"]))
+                for query in [
+                    dict(parse_qsl(urlparse(url).query)) for url in args.release_urls
+                ]
+            ]
+    else:
+        if args.mode is None:
+            transcode_release(
+                os.path.expanduser(args.input_dir),
+                os.path.expanduser(args.output_dir),
+                args.output_format,
+                args.threads,
+            )
+
+
+if __name__ == "__main__":
+    main()
