@@ -248,6 +248,21 @@ def replace_ignoring_years(text, replace_what, replace_with):
 
     return text
 
+def extract_first_value(flac_dir):
+    matches = list(re.finditer(r"\[(.*?)\]", flac_dir))
+    if matches:
+        last_match = matches[-1]
+        content = last_match.group(1)
+        first_value = content.split()[0]
+        # Replace the original content within the last pair of square brackets with the first value
+        new_flac_dir = (
+            flac_dir[: last_match.start(1)]
+            + first_value
+            + flac_dir[last_match.end(1) :]
+        )
+        return new_flac_dir
+    return flac_dir
+
 def get_transcode_dir(flac_dir, output_dir, output_format, resample):
     full_flac_dir = flac_dir
     transcode_dir = os.path.basename(flac_dir)
@@ -362,6 +377,19 @@ def get_transcode_dir(flac_dir, output_dir, output_format, resample):
     #transcode_dir = input(f"Transcode directory? [ {transcode_dir} ] : ").strip() or transcode_dir
     return os.path.join(output_dir, transcode_dir)
 
+def pool_initializer():
+    os.setsid()
+
+    def sigterm_handler(signum, frame):
+        # We're about to SIGTERM the group, including us; ignore
+        # it so we can finish this handler.
+        signal.signal(signal.SIGTERM, signal.SIG_IGN)
+        pgid = os.getpgid(0)
+        os.killpg(pgid, signal.SIGTERM)
+        sys.exit(-signal.SIGTERM)
+
+    signal.signal(signal.SIGTERM, sigterm_handler)
+
 def transcode_release(flac_dir, output_dir, output_format, max_threads=None):
     '''
     Transcode a FLAC release into another format.
@@ -394,22 +422,6 @@ def transcode_release(flac_dir, output_dir, output_format, max_threads=None):
     else:
         return transcode_dir
         #raise TranscodeException('transcode output directory "%s" already exists' % transcode_dir)
-
-    # To ensure that a terminated pool subprocess terminates its
-    # children, we make each pool subprocess a process group leader,
-    # and handle SIGTERM by killing the process group. This will
-    # ensure there are no lingering processes when a transcode fails
-    # or is interrupted.
-    def pool_initializer():
-        os.setsid()
-        def sigterm_handler(signum, frame):
-            # We're about to SIGTERM the group, including us; ignore
-            # it so we can finish this handler.
-            signal.signal(signal.SIGTERM, signal.SIG_IGN)
-            pgid = os.getpgid(0)
-            os.killpg(pgid, signal.SIGTERM)
-            sys.exit(-signal.SIGTERM)
-        signal.signal(signal.SIGTERM, sigterm_handler)
 
     try:
         # create transcoding threads
