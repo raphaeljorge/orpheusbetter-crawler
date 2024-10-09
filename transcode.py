@@ -319,14 +319,15 @@ def extract_first_value(flac_dir):
     return flac_dir
 
 
-def remove_last_bracket(flac_dir):
-    matches = list(re.finditer(r"\[(.*?)\]", flac_dir))
+def remove_last_bracket_value(text):
+    """
+    Removes the last value between brackets from the text.
+    """
+    matches = list(re.finditer(r"\[(.*?)\]", text))
     if matches:
         last_match = matches[-1]
-        # Remove the last pair of square brackets and their contents
-        new_flac_dir = flac_dir[: last_match.start()] + flac_dir[last_match.end() :]
-        return new_flac_dir.strip()
-    return flac_dir
+        text = text[: last_match.start()] + text[last_match.end() :]
+    return text
 
 
 def get_transcode_dir(flac_dir, output_dir, output_format, resample):
@@ -546,9 +547,9 @@ def get_transcode_dir(flac_dir, output_dir, output_format, resample):
     if re.search(r"\b2016\b", transcode_dir) and re.search(r"\b2024\b", flac_dir):
         transcode_dir = re.sub(r"\b2016\b", "2024", transcode_dir)
 
-    transcode_dir = remove_last_bracket(transcode_dir)
+    # Remove the last value between brackets
+    transcode_dir = remove_last_bracket_value(transcode_dir)
 
-    # transcode_dir = input(f"Transcode directory? [ {transcode_dir} ] : ").strip() or transcode_dir
     return os.path.join(output_dir, transcode_dir)
 
 
