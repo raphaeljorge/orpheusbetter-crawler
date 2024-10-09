@@ -333,7 +333,6 @@ def remove_last_bracket_value(text):
 def get_transcode_dir(flac_dir, output_dir, output_format, resample):
     full_flac_dir = flac_dir
     transcode_dir = os.path.basename(flac_dir)
-    transcode_dir = extract_first_value(transcode_dir)
     flac_dir = transcode_dir
 
     # This is what happens when you spend your time transcoding 24 bit to 16 for
@@ -548,7 +547,8 @@ def get_transcode_dir(flac_dir, output_dir, output_format, resample):
         transcode_dir = re.sub(r"\b2016\b", "2024", transcode_dir)
 
     # Remove the last value between brackets
-    transcode_dir = remove_last_bracket_value(transcode_dir)
+    # transcode_dir = extract_first_value(transcode_dir)
+    # transcode_dir = remove_last_bracket_value(transcode_dir)
 
     return os.path.join(output_dir, transcode_dir)
 
