@@ -595,7 +595,7 @@ def transcode_release(flac_dir, output_dir, output_format, max_threads=None):
     # transcode. Do not change this assumption without considering the
     # consequences!
     transcode_dir = get_transcode_dir(flac_dir, output_dir, output_format, resample)
-
+    print(f"######Transcoding to", transcode_dir)
     print(transcode_dir)
     if not os.path.exists(transcode_dir):
         os.makedirs(transcode_dir)
