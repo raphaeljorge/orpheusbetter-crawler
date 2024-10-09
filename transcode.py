@@ -593,8 +593,8 @@ def transcode_release(flac_dir, output_dir, output_format, max_threads=None):
     transcode_dir = get_transcode_dir(flac_dir, output_dir, output_format, resample)
     # Remove the last value between brackets
     transcode_dir = extract_first_value(transcode_dir)
+    transcode_dir = re.sub(r"\s{2,}", " ", transcode_dir)
     # transcode_dir = remove_last_bracket_value(transcode_dir)
-    print(f"######Transcoding to", transcode_dir)
     print(transcode_dir)
     if not os.path.exists(transcode_dir):
         os.makedirs(transcode_dir)
