@@ -590,7 +590,7 @@ def transcode_release(flac_dir, output_dir, output_format, max_threads=None):
     # transcode_dir is a new directory created exclusively for this
     # transcode. Do not change this assumption without considering the
     # consequences!
-    print(f"####### TRANSCODING TO {output_dir} #######")
+    print(f"####### TRANSCODING TO {flac_dir} #######")
     transcode_dir = get_transcode_dir(flac_dir, output_dir, output_format, resample)
     # Remove the last value between brackets
     transcode_dir = extract_first_value(transcode_dir)
