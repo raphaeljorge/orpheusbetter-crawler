@@ -546,10 +546,6 @@ def get_transcode_dir(flac_dir, output_dir, output_format, resample):
     if re.search(r"\b2016\b", transcode_dir) and re.search(r"\b2024\b", flac_dir):
         transcode_dir = re.sub(r"\b2016\b", "2024", transcode_dir)
 
-    # Remove the last value between brackets
-    # transcode_dir = extract_first_value(transcode_dir)
-    # transcode_dir = remove_last_bracket_value(transcode_dir)
-
     return os.path.join(output_dir, transcode_dir)
 
 
@@ -595,6 +591,9 @@ def transcode_release(flac_dir, output_dir, output_format, max_threads=None):
     # transcode. Do not change this assumption without considering the
     # consequences!
     transcode_dir = get_transcode_dir(flac_dir, output_dir, output_format, resample)
+    # Remove the last value between brackets
+    transcode_dir = extract_first_value(transcode_dir)
+    # transcode_dir = remove_last_bracket_value(transcode_dir)
     print(f"######Transcoding to", transcode_dir)
     print(transcode_dir)
     if not os.path.exists(transcode_dir):
