@@ -323,17 +323,15 @@ def remove_last_bracket(flac_dir):
     matches = list(re.finditer(r"\[(.*?)\]", flac_dir))
     if matches:
         last_match = matches[-1]
-        # Remove the last pair of square brackets
+        # Remove the last pair of square brackets and their contents
         new_flac_dir = flac_dir[: last_match.start()] + flac_dir[last_match.end() :]
-        return new_flac_dir
+        return new_flac_dir.strip()
     return flac_dir
 
 
 def get_transcode_dir(flac_dir, output_dir, output_format, resample):
     full_flac_dir = flac_dir
     transcode_dir = os.path.basename(flac_dir)
-    transcode_dir = extract_first_value(transcode_dir)
-    transcode_dir = remove_last_bracket(transcode_dir)
     flac_dir = transcode_dir
 
     # This is what happens when you spend your time transcoding 24 bit to 16 for
@@ -548,6 +546,7 @@ def get_transcode_dir(flac_dir, output_dir, output_format, resample):
         transcode_dir = re.sub(r"\b2016\b", "2024", transcode_dir)
 
     transcode_dir = extract_first_value(transcode_dir)
+    transcode_dir = remove_last_bracket(transcode_dir)
 
     # transcode_dir = input(f"Transcode directory? [ {transcode_dir} ] : ").strip() or transcode_dir
     return os.path.join(output_dir, transcode_dir)
